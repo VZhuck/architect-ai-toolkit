@@ -1,5 +1,3 @@
-using module .\ai-platform.psm1
-
 param(
     [Parameter()]
     [ValidateSet("claude", "gh", "All")]
@@ -11,59 +9,117 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-function New-AutomationLinks {
+function Test-ContainerMapping {
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateScript({ Test-Path $_ })]
-        [string]$TargetBaseDir,
+        [System.Collections.IDictionary]$ContainerMapping
+    )
+
+    foreach ($requiredKey in @("TargetContainer", "SourceContainer", "Mappings")) {
+        if (-not $ContainerMapping.Contains($requiredKey)) {
+            throw "ContainerMapping must contain '$requiredKey'."
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace([string]$ContainerMapping["TargetContainer"])) {
+        throw "ContainerMapping.TargetContainer cannot be empty."
+    }
+
+    if ([string]::IsNullOrWhiteSpace([string]$ContainerMapping["SourceContainer"])) {
+        throw "ContainerMapping.SourceContainer cannot be empty."
+    }
+
+    if (-not ($ContainerMapping["Mappings"] -is [System.Collections.IDictionary])) {
+        throw "ContainerMapping.Mappings must be a dictionary."
+    }
+
+    return $true
+}
+
+function Resolve-ExistingLinkConflict {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$LinkPath,
 
         [Parameter(Mandatory = $true)]
-        [ValidateScript({ Test-Path $_ })]
-        [string]$SourceBaseDir,
-
-        [Parameter(Mandatory = $true)]
-        [System.Collections.IDictionary]$Mappings,
+        [string]$SourcePath,
 
         [Parameter(Mandatory = $true)]
         [switch]$ForceReplace
     )
-    
-    foreach ($sourceName in $Mappings.Keys) {
-        $linkName = $Mappings[$sourceName]
-        $sourcePath = Join-Path -Path $SourceBaseDir -ChildPath $sourceName
-        $linkPath = Join-Path -Path $TargetBaseDir -ChildPath $linkName
+
+    if (-not (Test-Path -LiteralPath $LinkPath)) {
+        return $false
+    }
+
+    $existingItem = Get-Item -LiteralPath $LinkPath -Force
+    $isSymbolicLink = $existingItem.LinkType -eq "SymbolicLink"
+    $expectedTarget = (Resolve-Path -LiteralPath $SourcePath).Path
+    $actualTarget = $null
+
+    if ($isSymbolicLink) {
+        try {
+            $actualTarget = (Resolve-Path -LiteralPath $LinkPath).Path
+        }
+        catch {
+            # Broken symlink; treat as mismatch and replace if -Force is set.
+            $actualTarget = "<broken>"
+        }
+    }
+
+    if ($isSymbolicLink -and $actualTarget -eq $expectedTarget) {
+        Write-Host "Link already correct: $LinkPath -> $expectedTarget"
+        return $true
+    }
+
+    if (-not $ForceReplace) {
+        throw "Target already exists and differs: $LinkPath. Re-run with -Force to replace."
+    }
+
+    Remove-Item -LiteralPath $LinkPath -Recurse -Force
+    Write-Host "Replaced existing path: $LinkPath"
+    return $false
+}
+
+function New-AutomationLinks {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateScript({ Test-Path $_ })]
+        [string]$TargetRepoRoot,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateScript({ Test-Path $_ })]
+        [string]$SourceRepoRoot,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateScript({ Test-ContainerMapping $_ })]
+        [System.Collections.IDictionary]$ContainerMapping,
+
+        [Parameter(Mandatory = $true)]
+        [switch]$ForceReplace
+    )
+
+    $targetBaseDir = Join-Path -Path (Resolve-Path -LiteralPath $TargetRepoRoot).Path -ChildPath $ContainerMapping["TargetContainer"]
+    $sourceBaseDir = Join-Path -Path (Resolve-Path -LiteralPath $SourceRepoRoot).Path -ChildPath $ContainerMapping["SourceContainer"]
+
+    if (-not (Test-Path -LiteralPath $targetBaseDir)) {
+        New-Item -ItemType Directory -Path $targetBaseDir | Out-Null
+        Write-Host "Created folder: $targetBaseDir"
+    }
+
+    $resolvedTargetBaseDir = (Resolve-Path -LiteralPath $targetBaseDir).Path
+
+    foreach ($sourceName in $ContainerMapping["Mappings"].Keys) {
+        $linkName = $ContainerMapping["Mappings"][$sourceName]
+        $sourcePath = Join-Path -Path $sourceBaseDir -ChildPath $sourceName
+        $linkPath = Join-Path -Path $resolvedTargetBaseDir -ChildPath $linkName
 
         if (-not (Test-Path -LiteralPath $sourcePath)) {
             throw "Source path does not exist: $sourcePath"
         }
 
-        if (Test-Path -LiteralPath $linkPath) {
-            $existingItem = Get-Item -LiteralPath $linkPath -Force
-            $isSymbolicLink = $existingItem.LinkType -eq "SymbolicLink"
-            $expectedTarget = (Resolve-Path -LiteralPath $sourcePath).Path
-            $actualTarget = $null
-
-            if ($isSymbolicLink) {
-                try {
-                    $actualTarget = (Resolve-Path -LiteralPath $linkPath).Path
-                }
-                catch {
-                    # Broken symlink; treat as mismatch and replace if -Force is set.
-                    $actualTarget = "<broken>"
-                }
-            }
-
-            if ($isSymbolicLink -and $actualTarget -eq $expectedTarget) {
-                Write-Host "Link already correct: $linkPath -> $expectedTarget"
-                continue
-            }
-
-            if (-not $ForceReplace) {
-                throw "Target already exists and differs: $linkPath. Re-run with -Force to replace."
-            }
-
-            Remove-Item -LiteralPath $linkPath -Recurse -Force
-            Write-Host "Replaced existing path: $linkPath"
+        if (Resolve-ExistingLinkConflict -LinkPath $linkPath -SourcePath $sourcePath -ForceReplace:$ForceReplace) {
+            continue
         }
 
         try {
@@ -88,41 +144,122 @@ function New-AutomationLinks {
 # Single mapping table per platform.
 # Each entry: Container = folder under repo root for the platform's links.
 #             Mappings  = ordered map of <source-name-under-.ai-automation> -> <link-name-under-container>.
-$mappedFolders = [ordered]@{
-    "gh"     = @{
-        Container = ".github"
-        Mappings  = [ordered]@{
+$mappedPaths = [ordered]@{
+    "gh"              = @{
+        TargetContainer = ".github"
+        SourceContainer = ".ai-automation"
+        Mappings        = [ordered]@{
             "agents"          = "agents"
             "skills"          = "skills"
             "instructions"    = "instructions"
-            "instructions.md" = "copilot-instructions.md"
         }
     }
-    "claude" = @{
-        Container = ".claude"
-        Mappings  = [ordered]@{
+    "claude"          = @{
+        TargetContainer = ".claude"
+        SourceContainer = ".ai-automation"
+        Mappings        = [ordered]@{
             "agents"          = "agents"
             "skills"          = "skills"
             "instructions"    = "rules"
+            "instructions.md" = "CLAUDE.md"
+            "scripts"         = "scripts"
+        }
+    }
+    "shared" = @{
+        TargetContainer = ".ai-automation"
+        SourceContainer = ".ai-automation"
+        Mappings        = [ordered]@{
+            "scripts" = "scripts"
+        }
+    }
+}
+
+$initFileMapping = @{
+    "gh"     = @{
+        TargetContainer = ".github"
+        SourceContainer = ".ai-automation"
+        Mappings        = [ordered]@{
+            "instructions.md"  = "copilot-instructions.md"
+        }
+    }
+    "claude" = @{
+        TargetContainer = "./"
+        SourceContainer = ".ai-automation"
+        Mappings        = [ordered]@{
             "instructions.md" = "CLAUDE.md"
         }
     }
 }
 
+function New-MainPlatformFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateScript({ Test-Path $_ })]
+        [string]$TargetRepoRoot,
 
-$targetRepoRoot = Resolve-Path -Path $TargetRepoRoot
-$sourceBaseDir = Resolve-Path -Path ".ai-automation"
+        [Parameter(Mandatory = $true)]
+        [ValidateScript({ Test-Path $_ })]
+        [string]$SourceRepoRoot,
 
-foreach ($platform in $mappedFolders.Keys) {
-    if ($AiPlatform -eq "All" -or $platform -eq $AiPlatform) {
-        $config = $mappedFolders[$platform]
-        $targetBaseDir = Join-Path -Path $targetRepoRoot -ChildPath $config.Container
+        [Parameter(Mandatory = $true)]
+        [string]$Platform,
 
-        if (-not (Test-Path -LiteralPath $targetBaseDir)) {
-            New-Item -ItemType Directory -Path $targetBaseDir | Out-Null
-            Write-Host "Created folder: $targetBaseDir"
+        [Parameter(Mandatory = $true)]
+        [System.Collections.IDictionary]$InitFileMapping
+    )
+
+    if (-not $InitFileMapping.Contains($Platform)) {
+        throw "Init file mapping not found for platform '$Platform'."
+    }
+
+    $platformMapping = $InitFileMapping[$Platform]
+    if (-not (Test-ContainerMapping -ContainerMapping $platformMapping)) {
+        throw "Invalid init file mapping for platform '$Platform'."
+    }
+
+    $resolvedTargetRepoRoot = (Resolve-Path -LiteralPath $TargetRepoRoot).Path
+    $resolvedSourceRepoRoot = (Resolve-Path -LiteralPath $SourceRepoRoot).Path
+
+    $targetBaseDir = Join-Path -Path $resolvedTargetRepoRoot -ChildPath $platformMapping["TargetContainer"]
+    $sourceBaseDir = Join-Path -Path $resolvedSourceRepoRoot -ChildPath $platformMapping["SourceContainer"]
+
+    if (-not (Test-Path -LiteralPath $targetBaseDir)) {
+        New-Item -ItemType Directory -Path $targetBaseDir | Out-Null
+        Write-Host "Created folder: $targetBaseDir"
+    }
+
+    foreach ($sourceName in $platformMapping["Mappings"].Keys) {
+        $targetName = $platformMapping["Mappings"][$sourceName]
+        $sourceFilePath = Join-Path -Path $sourceBaseDir -ChildPath $sourceName
+        $targetFilePath = Join-Path -Path $targetBaseDir -ChildPath $targetName
+
+        if (Test-Path -LiteralPath $targetFilePath) {
+            Write-Host "Main platform file already exists: $targetFilePath"
+            Write-Host "  (Not modified, even with -Force)"
+            continue
         }
 
-        New-AutomationLinks -TargetBaseDir $targetBaseDir -SourceBaseDir $sourceBaseDir -Mappings $config.Mappings -ForceReplace:$Force
+        if (-not (Test-Path -LiteralPath $sourceFilePath)) {
+            Write-Host "Source file not found: $sourceFilePath"
+            continue
+        }
+
+        Copy-Item -LiteralPath $sourceFilePath -Destination $targetFilePath
+        Write-Host "Created main platform file: $targetFilePath"
+    }
+}
+
+foreach ($platform in $mappedPaths.Keys) {
+    if ($AiPlatform -eq "All" -or $platform -eq $AiPlatform -or $platform -eq "shared") {
+        $config = $mappedPaths[$platform]
+
+        New-AutomationLinks -TargetRepoRoot $TargetRepoRoot -SourceRepoRoot $PSScriptRoot -ContainerMapping $config -ForceReplace:$Force
+    }
+}
+
+# Create main platform files one time using mapping metadata.
+foreach ($platform in $initFileMapping.Keys) {
+    if ($AiPlatform -eq "All" -or $platform -eq $AiPlatform) {
+        New-MainPlatformFile -TargetRepoRoot $TargetRepoRoot -SourceRepoRoot $PSScriptRoot -Platform $platform -InitFileMapping $initFileMapping
     }
 }
