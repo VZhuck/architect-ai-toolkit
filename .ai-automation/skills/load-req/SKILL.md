@@ -48,6 +48,7 @@ AdoRequirements {
 - Keep `$adoRequirementsLatest` in PowerShell memory for step 2
 
 ### 2. Generate markdown files and store them in `functional-requirements-raw` folder
+- Create folder `functional-requirements-raw` if not exists
 - Follow file naming and content rules from `.ai-automation/instructions/functional-requirements-raw.instructions.md`
 - Do not generate `req-sync-log.md`
 - Do not summarize or change the content from ADO work items; keep all details intact while converting from HTML to markdown and applying formatting rules. The goal is to have markdown files that are as close to the ADO content as possible, just in the correct format for the repository.

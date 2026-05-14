@@ -220,3 +220,7 @@ __marimo__/
 # Agent platform generated or linked views
 .github/
 .claude/
+
+# Workflow & temp files 
+.workflow-temp/
+docs/

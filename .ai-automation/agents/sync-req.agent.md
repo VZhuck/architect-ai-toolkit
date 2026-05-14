@@ -21,7 +21,7 @@ Fail whole workflow any step fails
 - use `backup-folder` skill to backup files from `functional-requirements-raw/` to `.workflow-temp/functional-requirements-raw-temp/`
 
 ### 2. Load ADO requirements and generate markdown files
-- use `load-req` skill to load ADO requirements and generate markdown files in `functional-requirements-raw/` folder
+- use `load-req` skill to load ADO requirements and generate markdown files in `functional-requirements-raw` folder
 
 ### 3. Compare corresponding files `functional-requirements-raw` (source of truth) and `.workflow-temp/functional-requirements-raw-temp/` folders
 

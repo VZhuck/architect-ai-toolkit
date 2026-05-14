@@ -21,13 +21,18 @@ Run the helper script below. It resolves the input document, creates the destina
 
 # Example helper snippet if you need to derive file name from {destPath}
 $destPath = '{destPath}'
-$destinationFolder = Split-Path -Path $destPath -Parent
 
+
+$destinationFolder = Split-Path -Path $destPath -Parent
+if (-not (Test-Path -Path $destinationFolder)) {
+    New-Item -ItemType Directory -Path $destinationFolder |  Out-Null
+    Write-Host "Created destination folder: $destinationFolder"
+}
 
 # Relative spurce path based on destination folder for example: ..\..\docs\file-name.docx 
 $sourceDocRelativePath = [System.IO.Path]::GetRelativePath($destinationFolder, {souceDoc})
 $destFileName = Split-Path -Path $destPath -Leaf
-$mediaDirName = Split-Path -Path $destPath -Leaf -NoExtension
+$mediaDirName = Split-Path -Path $destPath -LeafBase
 
 
 Push-Location -Path $destinationFolder

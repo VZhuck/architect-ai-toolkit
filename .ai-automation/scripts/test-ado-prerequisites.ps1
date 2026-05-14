@@ -35,10 +35,10 @@ Write-Host '[3/4] Resolving ADO Organization & PAT evn vars...'
 if (-not (Test-Path Env:ADO_ORGANIZATION_URL) -or -not (Test-Path Env:ADO_PAT)) {
     throw 'ERROR:true; env variables ADO_ORGANIZATION_URL and/or ADO_PAT are NOT available'
 }
-    
+
 Write-Host '[4/4] Verifying ADO access...'
 $env:ADO_PAT | az devops login --organization $env:ADO_ORGANIZATION_URL 1> $null 2> $null
 if ($LASTEXITCODE -ne 0) { throw "ERROR:true; Can't login into ADO." }
 
-Write-Host '  Prerequisites OK.'
+Write-Host 'Prerequisites OK.'
 return $true

@@ -27,10 +27,13 @@ Use this skill to convert one large markdown document into a folder of smaller m
   - For example: if `sourceMd` is `.workflow-temp/mddoc/markdown-doc.md`, then `sourceMediaFolder` would be `.workflow-temp/mddoc/markdown-doc/`.
 
 ## Workflow
+Use following guadance for workflow execution:
+- Execute the following steps in order. Run this workflow end-to-end in one execution.
+- Do NOT pause for per-step confirmation.
+- Ask the user only if any issues are encountered, provide a clear error message indicating the step and problem.
+- Continue automatically to the next step after each step completes.
 
-use workflow as described below. Do not prompt for confirmation at each step, but do check for expected conditions and file existence before proceeding to next step. If any issues are encountered, provide a clear error message indicating the problem.
-
-### Split source markdown with @./scripts/split-markdown-by-heading.py script
+### Step 1: Split source markdown with @./scripts/split-markdown-by-heading.py script
 
 - Execute script, which will programativcally split markdown document by H1 headings, creating one file per section.
 
@@ -44,12 +47,11 @@ use workflow as described below. Do not prompt for confirmation at each step, bu
   # Split markdown by H1 headings
   python .ai-automation/scripts/split-markdown-by-heading.py --source-md {sourceMd} --target-folder {targetFolder} --headers "#"
   ```
-
 - Do not apply any markdown formating logic yet
 
-Move to next step `### Move related folder if present` to copy related media folder if exists
+Move to the next step
 
-### Move related folder if present
+### Step 2: Move related folder if present
 
 1. Check if the parent folder of `{sourceMd}` contains a subfolder with the same name as the source file (without extension).
 2. If such a subfolder exists, use the copy-dir.py script to copy the folder and all its files to the target location:
@@ -57,9 +59,10 @@ Move to next step `### Move related folder if present` to copy related media fol
   python .ai-automation/scripts/copy-dir.py --source-dir <source-folder-path> --target-base-dir {targetFolder}
    ```
 
-Move to next steps to do post-processing on generated files (table of contents, fixing tables, images, links, etc.). Use LLM capabilities to intelligently update content and formatting as needed, but do not summarize or remove content. The goal is to preserve all original content while improving formatting and structure for the new multi-file format.
+Move to next step
 
-### Update index file with cross-file links
+### Step 3: Update index file with cross-file links
+Do not generate code for this step, use LLM capabilities to intelligently convert content and formatting as needed. 
 
 - Replace single-document anchor links with cross-file links
 - use ordered List for H1 headers linking to files: `1. [Project Details](01.Project-Details.md)`
@@ -81,13 +84,18 @@ Example:
     - 2.1 [Functional Requirements](02.Requirements.md#functional-requirements)
     - 2.2 [NFR](02.Requirements.md#nfr)
 ```
+Move to next `### Read & update each file with LLM capabilities`
 
-### Read & update each file with LLM capabilities
+### Step 4: Read & update each file with LLM capabilities
+This is a required post-processing step after splitting and is NOT performed by `split-markdown-by-heading.py`.
+This is the most important step in the workflow and MUST be executed using LLM capabilities, not code/script-only transformations.
+Do not generate code for this step. Use LLM reasoning to intelligently convert content and formatting as needed.
 
-- This is a required post-processing step after splitting and is NOT performed by `split-markdown-by-heading.py`.
+- Follow @../instructions/sad-sections.instructions.md
+- Do not summarize or remove content. Just conver elements in markdown native format (for example html <table> to pipe tables)
 - Apply this step to every generated file in the target folder.
 - Use LLM as it can understand the content and make intelligent decisions how to better present content.
-- Follow @../instructions/sad-sections.instructions.md
+- Do NOT replace this step with regex-only, template-only, or script-only edits.
 - Do NOT summarize. Do proper tables, images, diagrams, links conversion as described below to.
 - Preserve empty lines between paragraphs. Do not collapse paragraph boundaries while reformatting content.
 

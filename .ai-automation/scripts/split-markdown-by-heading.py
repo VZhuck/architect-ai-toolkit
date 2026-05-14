@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
-from langchain_text_splitters import MarkdownHeaderTextSplitter
+from langchain_text_splitters.markdown import ExperimentalMarkdownSyntaxTextSplitter
 
 
 def parse_args() -> argparse.Namespace:
@@ -69,7 +69,7 @@ def build_output_name(index: int, doc_metadata: dict) -> str:
         label = str(h1)
     elif index == 0:
         label = label = f"Index"
-    else:
+    else:   
         label = f"section-{index:02d}"
 
     return f"{index:02d}.{sanitize_filename(label)}.md"
@@ -94,7 +94,9 @@ def main() -> int:
     markdown_text = source_md.read_text(encoding="utf-8")
 
     headers_to_split_on = build_headers_to_split_on(args.headers)
-    splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+    splitter = ExperimentalMarkdownSyntaxTextSplitter(
+        headers_to_split_on=headers_to_split_on
+    )
     docs = splitter.split_text(markdown_text)
 
     if not docs:
@@ -107,21 +109,11 @@ def main() -> int:
         output_name = build_output_name(idx, doc.metadata)
         output_path = target_folder / output_name
 
-        lines = []
-        if doc.metadata.get("h1"):
-            lines.append(f"# {doc.metadata['h1']}")
-        if doc.metadata.get("h2"):
-            lines.append(f"## {doc.metadata['h2']}")
-        if doc.metadata.get("h3"):
-            lines.append(f"### {doc.metadata['h3']}")
-
-        body = doc.page_content.strip()
-        if lines and body:
-            content = "\n\n".join([*lines, body]) + "\n"
-        elif lines:
-            content = "\n\n".join(lines) + "\n"
-        else:
-            content = body + ("\n" if body else "")
+        # ExperimentalMarkdownSyntaxTextSplitter preserves original formatting
+        # and includes headers when strip_headers=False
+        content = doc.page_content
+        if content and not content.endswith("\n"):
+            content += "\n"
 
         output_path.write_text(content, encoding="utf-8")
         print(f"Wrote: {output_path}")
