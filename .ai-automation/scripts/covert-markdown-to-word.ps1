@@ -2,7 +2,9 @@
 param(
 	[string]$SourceMdDir = "./sad",
 	[string]$TargeOutputDir = "./.workflow-temp/sad-word/",
-	[string]$WordDocName = "sad.docx"
+	[string]$WordDocName = "sad.docx",
+	[string]$ExludeFilePattern = "00.index.md",
+	[string]$DocxTemplatePath = "./docs/sad-template.docx"
 )
 
 $ErrorActionPreference = "Stop"
@@ -19,7 +21,8 @@ if (-not (Test-Path -LiteralPath $targeOutputDir)) {
 
 $resolvedOutputDir = (Resolve-Path -LiteralPath $targeOutputDir).Path
 
-$markdownFiles = Get-ChildItem -LiteralPath $resolvedSourceDir -Filter "*.md" -File -Recurse |
+$markdownFiles = Get-ChildItem -LiteralPath $resolvedSourceDir -Filter "*.md" -File -Recurse | 
+	Where-Object { $_.Name -notlike $ExludeFilePattern } |
 	Sort-Object -Property FullName
 
 if ($markdownFiles.Count -eq 0) {
@@ -34,6 +37,11 @@ $outputDocPath = Join-Path -Path $resolvedOutputDir -ChildPath $wordDocName
 
 Write-Host "Converting $($markdownFiles.Count) markdown files into '$outputDocPath'..."
 
+$resolvedDocxTemplatePath = (Resolve-Path -LiteralPath $DocxTemplatePath).Path
+if (-not (Test-Path -LiteralPath $resolvedDocxTemplatePath)) {
+	throw "The specified DOCX template file was not found at '$resolvedDocxTemplatePath'."
+}
+
 # Run pandoc from source directory so relative paths and local assets resolve correctly.
 Push-Location -Path $resolvedSourceDir
 try {
@@ -43,9 +51,11 @@ try {
 	$tempWordDocName = "{0}.{1}.tmp.docx" -f [System.IO.Path]::GetFileNameWithoutExtension($wordDocName), [Guid]::NewGuid().ToString("N")
 	$tempWordDocPath = Join-Path -Path $resolvedSourceDir -ChildPath $tempWordDocName
 
-	$pandocArgs = @("-s", "--toc")
+	# $pandocArgs = @("-s", "--toc")
+	$pandocArgs += @("--reference-doc", $resolvedDocxTemplatePath)	
+	
 	# DO NOTDELETE
-	# $pandocArgs += @( "--lua-filter", "C:\Users\USERNAME\AppData\Roaming\pandoc\lua-filters\test.lua" )
+	# $pandocArgs += @( "--lua-filter", "~\path\to\lua-filters\diagram.lua" )
 
 	$pandocArgs += $inputMarkdownPaths
 	$pandocArgs += @("-o", $tempWordDocPath)
