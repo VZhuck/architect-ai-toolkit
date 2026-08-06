@@ -1,0 +1,1 @@
+../../commands/md-to-word.md

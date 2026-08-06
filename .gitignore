@@ -218,9 +218,6 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Agent platform generated or linked views
-.github/
-.claude/
 
 # Workflow & temp files 
-.workflow-temp/
-docs/
+.ai-workflow/
