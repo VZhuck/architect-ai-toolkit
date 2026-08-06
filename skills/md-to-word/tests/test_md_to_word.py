@@ -177,6 +177,125 @@ class TestMermaidDiagrams:
         assert "mmdc" not in calls
 
 
+class TestIconPackDetection:
+    def test_detects_icon_shape_syntax(self):
+        text = '```mermaid\nflowchart TD\n  A@{ icon: "logos:aws-lambda" }\n```\n'
+        assert md_to_word._detect_icon_packs(text) == ["@iconify-json/logos"]
+
+    def test_detects_architecture_service_syntax(self):
+        text = (
+            "```mermaid\narchitecture-beta\n"
+            "    service lambda(logos:aws-lambda)[Lambda]\n"
+            "    service db(logos:aws-rds)[Database]\n"
+            "```\n"
+        )
+        assert md_to_word._detect_icon_packs(text) == ["@iconify-json/logos"]
+
+    def test_ignores_non_icon_colons_like_sequence_messages(self):
+        text = "```mermaid\nsequenceDiagram\n    Alice->>Bob: Hello Bob\n```\n"
+        assert md_to_word._detect_icon_packs(text) == []
+
+    def test_no_mermaid_fence_returns_empty(self):
+        assert md_to_word._detect_icon_packs("plain text, no fences here") == []
+
+    def test_mmdc_invoked_with_detected_icon_packs(self, section_folder, tmp_path, monkeypatch):
+        (section_folder / "03.Section-Three.md").write_text(
+            '```mermaid\narchitecture-beta\n    service db(logos:aws-rds)[Database]\n```\n',
+            encoding="utf-8",
+        )
+        real_run = subprocess.run
+        recorded_cmds = []
+
+        def fake_run(cmd, *args, **kwargs):
+            if cmd[0] == "mmdc":
+                recorded_cmds.append(cmd)
+                Path(cmd[cmd.index("-o") + 1]).write_text("rendered", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            return real_run(cmd, *args, **kwargs)
+
+        monkeypatch.setattr(md_to_word.subprocess, "run", fake_run)
+
+        convert(section_folder, output=tmp_path / "out.docx")
+
+        assert len(recorded_cmds) == 1
+        cmd = recorded_cmds[0]
+        assert "--iconPacks" in cmd
+        assert "@iconify-json/logos" in cmd
+
+
+ROWSPAN_TABLE_SECTION_MD = """# Section Three
+
+<!-- HTML format: contains rowspan -->
+<table>
+<tr><td rowspan="2">Row label</td><td><img src="media/cover.png" width="50"/></td></tr>
+<tr><td>Second row</td></tr>
+</table>
+"""
+
+
+class TestHtmlTableSplicing:
+    def test_rowspan_table_and_image_survive_conversion(self, section_folder, tmp_path):
+        (section_folder / "03.Section-Three.md").write_text(ROWSPAN_TABLE_SECTION_MD, encoding="utf-8")
+
+        output = convert(section_folder, output=tmp_path / "out.docx")
+
+        with zipfile.ZipFile(output) as z:
+            doc_xml = z.read("word/document.xml").decode("utf-8")
+            media_files = [n for n in z.namelist() if n.startswith("word/media/")]
+
+        assert "<w:tbl" in doc_xml
+        assert "vMerge" in doc_xml
+        assert "<!-- HTML format" not in doc_xml
+        # The cover PNG plus the table-cell image spliced in from the HTML fragment.
+        assert len(media_files) >= 2
+
+    def test_source_section_file_left_untouched(self, section_folder, tmp_path):
+        (section_folder / "03.Section-Three.md").write_text(ROWSPAN_TABLE_SECTION_MD, encoding="utf-8")
+        source_path = section_folder / "03.Section-Three.md"
+        original_content = source_path.read_text(encoding="utf-8")
+
+        convert(section_folder, output=tmp_path / "out.docx")
+
+        assert source_path.read_text(encoding="utf-8") == original_content
+
+
+class TestPageBreaks:
+    def test_page_break_before_every_section(self, section_folder, tmp_path):
+        output = convert(section_folder, output=tmp_path / "out.docx")
+
+        with zipfile.ZipFile(output) as z:
+            doc_xml = z.read("word/document.xml").decode("utf-8")
+
+        # section_folder has two <n>.<Title>.md files, so two page breaks expected.
+        assert doc_xml.count('w:type="page"') == 2
+
+
+class TestNonMediaAssetFolders:
+    def test_image_under_non_media_folder_is_embedded(self, section_folder, tmp_path):
+        # rules/sad-sections.instructions.md explicitly allows images under
+        # other relative folders, e.g. ./diagrams/diagram-name.svg - not just
+        # media/. convert() must copy those folders into staging too, or
+        # pandoc silently can't find the file and drops the image.
+        diagrams_dir = section_folder / "diagrams"
+        diagrams_dir.mkdir()
+        svg_bytes = (
+            b'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">'
+            b'<rect width="40" height="40" fill="blue"/></svg>'
+        )
+        (diagrams_dir / "diagram.svg").write_bytes(svg_bytes)
+
+        (section_folder / "01.Section-One.md").write_text(
+            SECTION_ONE_MD + "\n![A diagram](diagrams/diagram.svg)\n", encoding="utf-8"
+        )
+
+        output = convert(section_folder, output=tmp_path / "out.docx")
+
+        with zipfile.ZipFile(output) as z:
+            media_files = [n for n in z.namelist() if n.startswith("word/media/")]
+
+        assert any(name.endswith(".svg") for name in media_files)
+
+
 class TestTemplateResolution:
     def test_explicit_argument_overrides_env(self, tmp_path):
         explicit_template = tmp_path / "explicit.docx"
