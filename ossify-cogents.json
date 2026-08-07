@@ -1,0 +1,72 @@
+{
+  "$schema": "https://raw.githubusercontent.com/VZhuck/ossify-cogents/main/schema/v1.json",
+  "ossify-skills-registry": [
+    {
+      "id": "anthropic-skills",
+      "name": "Anthropic Skills",
+      "description": "Anthropic's library of agent skills.",
+      "source-type": "git",
+      "source": { "uri": "https://github.com/anthropics/skills", "ref": "main" },
+      "discovery": [
+        "ossify-open-standard"
+      ],
+      "install": {
+        "target-platforms": [
+          "claude"
+        ],
+        "agents": [],
+        "skills": [],
+        "commands": [],
+        "rules": [],
+        "by-pattern": []
+      }
+    },
+    {
+      "id": "ai-architect-toolkit",
+      "name": "AI Architect Toolkit",
+      "description": "ai toolkit",
+      "source-type": "git",
+      "source": { "uri": "https://github.com/VZhuck/architect-ai-toolkit.git", "ref": "main" },
+      "discovery": [
+        "ossify-open-standard", "ai-architect-toolkit"
+      ],
+      "install": {
+        "target-platforms": [
+          "claude"
+        ],
+        "agents": [],
+        "skills": ["*"],
+        "commands": ["*"],
+        "rules": ["*"],
+        "by-pattern": [
+          { "category": "vscode-settings", "action": "json_merge" },
+          { "category": "vscode-markdown-styles", "action": "replace" }
+        ]
+      }
+    }
+  ],
+  "discovery-definitions": [
+    {
+      "id": "ai-architect-toolkit",
+      "type": "custom",
+      "mappings": {
+        "agents": [
+          { "type": "folder", "path": "agents" }
+        ],
+        "skills": [
+          { "type": "folder", "path": "skills" }
+        ],
+        "commands": [
+          { "type": "folder", "path": "commands" }
+        ],
+        "rules": [
+          { "type": "folder", "path": "rules" }
+        ],
+        "by-pattern": [
+          { "type": "file", "path": ".vscode/settings.json", "category": "vscode-settings" },
+          { "type": "file", "path": ".vscode/markdown-styles.css", "category": "vscode-markdown-styles" }
+        ]
+      }
+    }
+  ]
+}
