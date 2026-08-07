@@ -1,0 +1,1 @@
+../../commands/summarize-meeting-decisions.md

@@ -27,27 +27,13 @@ To force replacement of existing links, add the `-Force` flag:
 ```
 
 ### Creating a Python Environment
-Skills require a Python environment configured in your target repository (the repo where you will run skills):
+Skills require a Python environment configured in your target repository (the repo where you will run skills). Dependencies are managed with [uv](https://docs.astral.sh/uv/) via `pyproject.toml`/`uv.lock` — there is no separate manual install step.
 
-1. Ensure you have Python 3.8+ installed.
-2. Create a virtual environment:
+1. Ensure you have [uv](https://docs.astral.sh/uv/getting-started/installation/) installed.
+2. Copy `pyproject.toml` and `uv.lock` from this repository to your target repository (if not already present).
+3. Run any script with `uv run`, e.g.:
 	```bash
-	python3 -m venv .venv
+	uv run python skills/word-to-md/scripts/docx_to_md.py --source path/to/file.docx
+	uv run pytest skills/word-to-md/tests/
 	```
-3. Activate the environment:
-	- On macOS/Linux:
-	  ```bash
-	  source .venv/bin/activate
-	  ```
-	- On Windows:
-	  ```powershell
-	  .venv\Scripts\Activate.ps1
-	  ```
-4. Copy the dependencies file from this repository to your target repository (if not already present):
-	```bash
-	cp /path/to/architect-ai-toolkit/requirements.txt /path/to/your/target-repo/
-	```
-5. Install dependencies in your target repo:
-	```bash
-	pip install -r requirements.txt
-	```
+	`uv` automatically creates/syncs `.venv` from `uv.lock` on first use.

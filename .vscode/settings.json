@@ -1,7 +1,10 @@
 {
-    "markdown.styles": [
-        "https://use.fontawesome.com/releases/v5.7.1/css/all.css",
-        "./.vscode/markdown-styles.css"
-    ],
-    "markdown-mermaid.darkModeTheme": "default"
+  "markdown.styles": [
+    "https://use.fontawesome.com/releases/v5.7.1/css/all.css",
+    "./.vscode/markdown-styles.css"
+  ],
+  "workbench.editorAssociations": {
+    "*.svg": "hediet.vscode-drawio-text"
+  },
+  "hediet.vscode-drawio.offline": false
 }
