@@ -11,6 +11,9 @@ updated: <UPDATED>
 ## Description
 <DESCRIPTION>
 
+<ADDITIONAL_FIELDS>
+<!-- Omit this section entirely if JIRA_ADDITIONAL_FIELDS is not set; otherwise one "## <Field Name>" heading per configured field -->
+
 ## Acceptance Criteria
 <ACCEPTANCE_CRITERIA>
 

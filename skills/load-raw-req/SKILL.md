@@ -11,6 +11,7 @@ Fetch Jira work items via the `twg` CLI and render them into `ai-workflow/raw-re
 ## Parameters
 - **KEYS**: one or more Jira issue keys to fetch (e.g. `CAP-123`, `EPIC-45`, `ABC-789`), in any order — there is no primary/extra distinction. Issue type is read off each fetched item — do not ask the caller to declare it. Accepts space-separated, comma-separated, or mixed (`ABC-45 ABC-99`, `ABC-45, ABC-99`, `ABC-45,ABC-99` are all equivalent — split on any run of whitespace/commas). Optional if `.env` provides a fallback (see step 2).
 - **--children** (optional flag): for every key in `KEYS` that supports it (Capability, Epic), resolve exactly one level of children and add them to the fetch. No-op with an informational note for keys that have no children level (e.g. a Story).
+- **JIRA_ADDITIONAL_FIELDS** (optional, read from `.env`): comma-separated list of extra Jira field keys to render, as they appear in the `--full` response (e.g. `JIRA_ADDITIONAL_FIELDS=customfield_10311,customfield_10312`). Plain `twg jira workitem get` without `--full` omits custom fields entirely — this is why the batched fetch in step 4 always uses `--full`, so every configured field is present in the response without a separate call. If unset or empty, no additional fields are fetched or rendered. Each configured field gets its own `## <Field Name>` heading (the field's human-readable display name, resolved via field metadata — see step 4) placed after the `## Description` section, in the order listed.
 
 ## Workflow
 
@@ -24,6 +25,7 @@ twg -v
 - If the caller passed any keys as arguments, use those as `KEYS` and skip `.env` entirely — there is no partial merge between passed arguments and `.env`.
 - If the caller passed no keys at all, read a `.env` file at the repo root and use its `JIRA_KEYS` value (same space/comma-separated parsing rule) as `KEYS`.
 - If `KEYS` is still empty (no arguments, and `.env` missing or `JIRA_KEYS` unset), stop and ask the caller for at least one key; do not guess or proceed without one.
+- Independently of how `KEYS` was resolved, always read `.env` for `JIRA_ADDITIONAL_FIELDS` (same space/comma-separated parsing rule). If `.env` is missing or the variable is unset/empty, treat the additional-fields list as empty.
 - `.env` is git-ignored — treat it as local/optional; a missing `.env` file when keys were passed explicitly is not an error.
 - The fetch set starts as `KEYS`. If `--children` was passed, for **every** key in `KEYS`:
   - Run `twg context jira workitem {key} --relationships jira_work_item_has_child_jira_work_item --detail summary -o json`.
@@ -45,6 +47,7 @@ If every key resolves to `unchanged`, skip step 4 entirely and go straight to st
 Dispatch exactly one subagent (Task tool) carrying:
 - The list of keys needing a full fetch (i.e. everything not marked `unchanged` in step 3).
 - The keys (from step 2) that had children resolved via `--children`, and their resolved child keys — so the subagent knows which item gets a `Children` table.
+- The `JIRA_ADDITIONAL_FIELDS` list resolved in step 2 (may be empty).
 - The four template file contents from `./skills/load-raw-req/templates/`.
 - The target output directory `./ai-workflow/raw-requirements/`.
 
@@ -54,6 +57,7 @@ The subagent's job, entirely inside its own context (never surfaced to the orche
    - Pick the template by `issuetype.name`: `Capability` → `templates/capability.md`, `Epic` → `templates/epic.md`, `Story` → `templates/story.md`, anything else → `templates/default.md`.
    - Convert Jira's ADF/HTML `description` to markdown. Strip HTML tags/inline styles. Preserve content over exact fidelity.
    - Acceptance Criteria has no fixed Jira field (unlike ADO) — it is project-specific. Discover it via `twg jira workitem field` custom-field metadata (matching a display name such as "Acceptance Criteria") if the project defines one, and render its content under that heading. If no such field exists for the project, leave the `## Acceptance Criteria` heading present with no fabricated content rather than inventing criteria from the description.
+   - If `JIRA_ADDITIONAL_FIELDS` is non-empty, replace `<ADDITIONAL_FIELDS>` (placed right after `## Description`) with one `## <Field Name>` block per configured field key, in the order listed, each followed by that field's rendered value read directly off the `--full` response under that key (no extra per-field API call is needed since `--full` already returned it). Resolve each field key's human-readable display name once per unique key across the whole batch (e.g. via `twg jira workitem field update-metadata --id <any-key-in-batch> -o json`, matching the `id`/`key` to the configured value) for use as the `## <Field Name>` heading text; fall back to the raw field key itself as the heading if metadata lookup fails. The field may not exist in the response JSON for a given item (or for any item) — in that case skip only that field's heading for that item rather than failing. If `JIRA_ADDITIONAL_FIELDS` is empty/unset, remove the `<ADDITIONAL_FIELDS>` placeholder and its comment entirely (no empty section left behind).
    - Build the `Children` table (key, title, type, status) from step 2's resolved children when this item had `--children` applied to it; omit the section entirely if empty.
    - Build the `Linked Work Items` table from the item's `issuelinks[]`: key = the linked issue's key, link type = `type.outward` (or `type.inward` depending on which side is populated), title = linked issue's summary, URL = linked issue's browse URL. Omit the section entirely if empty.
    - Write frontmatter: `id`, `title` (from `summary`), `issuetype` (from `issuetype.name`), `created`, `updated`.
