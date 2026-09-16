@@ -221,3 +221,7 @@ __marimo__/
 
 # Workflow & temp files 
 ai-workflow/
+
+# Ignore selve testing folders
+.claude/commands/aait/
+.claude/skills/aait-nfr/

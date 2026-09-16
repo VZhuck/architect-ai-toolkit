@@ -11,6 +11,15 @@ Required environment variables include:
 - ADO_FEATURE_IDS
 - ADO_PAT
 
+## Naming Convention for Skills and Commands
+
+New skills and commands are prefixed `aait` (AI Architect Toolkit), so toolkit capabilities are distinguishable from a target repository's own skills once installed.
+
+- Skills: `skills/aait-<name>/` — for example `skills/aait-nfr/`.
+- Commands: `commands/aait/<name>.md`, invoked as `/aait:<name>` — for example `/aait:nfr-detect`. Nested command folders are discovered correctly by `ossify-cogents`.
+
+Skills that predate this convention (`load-raw-req`, `md-to-word`, `summarize-meeting-decisions`, `word-to-md`) keep their existing names. The prefix applies going forward only; do not rename them.
+
 ## Repository Structure
 The repository is structured as follows:
 

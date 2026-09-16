@@ -1,4 +1,8 @@
-# Technical Quality Attributes
+# Quality Attributes
+
+Closed vocabulary for the **Quality Attribute Requirements** section of a Non-Functional Requirements document. Attribute names are used verbatim — never shortened, split, merged, paraphrased, or re-cased. This catalog is not extended by tooling; adding an attribute is a deliberate human edit to this file.
+
+A quality attribute requirement states what is measured, the threshold with its unit, and the conditions. One row per requirement in the document, identified `QAR-nn`, each traced to the business driver it serves. Priority is a baseline to start from, adjusted per project using evidence from the sources; the scale is defined in [qa-priorities.md](qa-priorities.md).
 
 | Quality Attribute | Brief Description | Priority | Typical Metric / Fitness Function |
 |---|---|---|---|
