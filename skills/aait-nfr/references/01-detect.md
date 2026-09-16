@@ -83,6 +83,8 @@ Show:
 
 Ask the user to confirm, correct, or extend. Batch the questions — do not drip-feed. If the user is unavailable, stop and report; do not guess forward.
 
+Relay the funnel, the coverage grid, and this gate — and nothing beneath them. **Raw source file contents never reach this conversation**; that is the whole point of mining in subagents. Carry the candidate rows and their citations, not the material they came from.
+
 ## 7. Write the draft and trace
 
 Only after the gate is answered.

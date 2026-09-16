@@ -6,6 +6,8 @@ the rule that draft and trace files never land in sad/ - where md-to-word
 would sweep them into the Word deliverable.
 """
 
+import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -142,6 +144,60 @@ def test_working_files_never_land_in_sad(repo: Path):
 def test_working_paths_ignore_where_the_target_lives(repo: Path):
     elsewhere = derive_working_paths(repo / "docs" / "nfr.md", repo)
     assert elsewhere["draft"].parent == repo / "ai-workflow" / "nfr"
+
+
+# --------------------------------------------------------------------------
+# Draft and trace existence - the inputs phase inference reads
+# --------------------------------------------------------------------------
+
+
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "resolve_nfr_paths.py"
+
+
+def resolve_json(repo: Path, nfr_path: Path) -> dict:
+    """Run the resolver as the skill runs it, and parse its JSON output."""
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "--nfr-path", str(nfr_path), "--json"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return json.loads(result.stdout)
+
+
+@pytest.mark.parametrize(
+    "draft_present,trace_present",
+    [(False, False), (True, False), (False, True), (True, True)],
+)
+def test_draft_and_trace_existence_is_reported(
+    repo: Path, draft_present: bool, trace_present: bool
+):
+    """Phase inference reads these two booleans, so the resolver must report both."""
+    target = repo / "sad" / "08.Non-Functional-Requirements.md"
+    working = derive_working_paths(target, repo)
+    working["draft"].parent.mkdir(parents=True, exist_ok=True)
+    if draft_present:
+        working["draft"].write_text("# draft\n", encoding="utf-8")
+    if trace_present:
+        working["trace"].write_text("# trace\n", encoding="utf-8")
+
+    payload = resolve_json(repo, target)
+
+    assert payload["draft_exists"] is draft_present
+    assert payload["trace_exists"] is trace_present
+
+
+def test_existence_is_independent_of_the_target_document(repo: Path):
+    """A living nfrPath carries no phase - its existence says nothing about a run."""
+    target = repo / "sad" / "08.Non-Functional-Requirements.md"
+    target.write_text("# Non-Functional Requirements\n", encoding="utf-8")
+
+    payload = resolve_json(repo, target)
+
+    assert payload["nfr_path_exists"] is True
+    assert payload["draft_exists"] is False
+    assert payload["trace_exists"] is False
 
 
 # --------------------------------------------------------------------------

@@ -42,7 +42,7 @@ Treat the existing document as authoritative:
 uv run python <skillDir>/scripts/validate_nfr.py --doc "{draft}" --catalog-dir "<skillDir>/templates"
 ```
 
-**Exit code 1 means nothing is promoted.** Report every failure with its row, fix what is genuinely fixable, and re-run. Do not edit the validator, widen its patterns, or reach for `nfrPath` to work around a failure. A failing check is the pipeline working.
+**Exit code 1 means nothing is promoted.** Report every failure with its row, say plainly that the target document was left untouched, fix what is genuinely fixable, and re-run. Do not edit the validator, widen its patterns, or reach for `nfrPath` to work around a failure. A failing check is the pipeline working — running publish on an under-refined draft is safe by design, because validation catches it before the deliverable does.
 
 If a check is wrong — a legitimate driver flagged as technical, say — stop and raise it with the user. That is a change to the validator, made deliberately, not a bypass.
 
@@ -62,7 +62,23 @@ Show the user what will change before it changes — a diff of the rendered draf
 
 Then write to `nfrPath`. Create parent directories if needed. When the target is a new document in `sad/`, the filename was agreed during path resolution and already conforms to `rules/sad-sections.instructions.md`.
 
-## 6. Report
+## 6. Stamp the trace
+
+**Only after the write to `nfrPath` succeeded.** Append a terminal row to the trace file's Decision Log:
+
+| Date | Decision | Gate |
+| --- | --- | --- |
+| {today} | Promoted to `{nfrPath}` — {n} requirements, {added} added | publish |
+
+This row is what closes the run out. Without it the draft still reads as in flight, so the next invocation would offer to re-publish work that is already promoted instead of offering a fresh detect run against new sources.
+
+Order matters. A failed validation or a failed write leaves the run in flight, which is correct — do not stamp on the way in, and never stamp a run that did not reach the document.
+
+The Decision Log **accumulates**: append beneath the existing rows. A living document collects the gates and publishes of every run against it; resetting the log would erase the record of how it got here.
+
+If the trace file is absent — deleted between runs — promote anyway and say in the report that provenance was unavailable and no publish row could be written.
+
+## 7. Report
 
 - paths used — sources, catalog folder, draft, trace, target — and how many sources were read
 - requirements added / updated / unchanged

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate a Non-Functional Requirements document.
 
-This script is the aait-nfr pipeline's enforcement mechanism. /aait:nfr-publish
+This script is the aait-nfr pipeline's enforcement mechanism. The publish phase
 renders a draft, runs this validator, and promotes to the target document only
 on exit code 0. That is what makes premature publishing safe: an under-refined
 draft fails here instead of corrupting the deliverable.

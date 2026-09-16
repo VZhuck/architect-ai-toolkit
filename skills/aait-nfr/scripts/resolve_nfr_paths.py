@@ -229,7 +229,9 @@ def main() -> int:
             "nfr_path_source": info["source"],
             "nfr_path_exists": nfr_path.is_file() if nfr_path else False,
             "draft": str(working["draft"]) if working else None,
+            "draft_exists": working["draft"].is_file() if working else False,
             "trace": str(working["trace"]) if working else None,
+            "trace_exists": working["trace"].is_file() if working else False,
         }
         if nfr_path is None:
             payload["existing_documents"] = [str(p) for p in info["existing"]]
@@ -252,7 +254,9 @@ def main() -> int:
         print(f"\nNFR document: {nfr_path}  ({info['source']})")
         print(f"  exists: {nfr_path.is_file()}")
         print(f"Draft: {working['draft']}")
+        print(f"  exists: {working['draft'].is_file()}")
         print(f"Trace: {working['trace']}")
+        print(f"  exists: {working['trace'].is_file()}")
         return 0
 
     print("\nNFR document: needs user choice (no --nfr-path, no .env NFR_PATH)")

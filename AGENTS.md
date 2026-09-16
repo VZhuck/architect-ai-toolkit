@@ -15,8 +15,8 @@ Required environment variables include:
 
 New skills and commands are prefixed `aait` (AI Architect Toolkit), so toolkit capabilities are distinguishable from a target repository's own skills once installed.
 
-- Skills: `skills/aait-<name>/` — for example `skills/aait-nfr/`.
-- Commands: `commands/aait/<name>.md`, invoked as `/aait:<name>` — for example `/aait:nfr-detect`. Nested command folders are discovered correctly by `ossify-cogents`.
+- Skills: `skills/aait-<name>/`, invoked as `/aait-<name>` — for example `skills/aait-nfr/` → `/aait-nfr`.
+- A multi-phase toolkit capability is **one skill taking a phase argument**, not one command per phase. Where the pipeline persists its own progress, the phase is inferred from that state and the argument is an override — see `skills/aait-nfr/SKILL.md`. Custom commands are not deprecated, but a command that only names a phase and re-parses the same flags duplicates the skill it wraps.
 
 Skills that predate this convention (`load-raw-req`, `md-to-word`, `summarize-meeting-decisions`, `word-to-md`) keep their existing names. The prefix applies going forward only; do not rename them.
 

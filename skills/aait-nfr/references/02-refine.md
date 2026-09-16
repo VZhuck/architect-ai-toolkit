@@ -12,6 +12,10 @@ Read the draft and trace resolved in "Before doing anything". If no draft exists
 
 Each gate below ends by **writing the confirmed result into the draft before moving on**. Never batch three gates' worth of answers and write once at the end: an interruption then loses everything the user just decided.
 
+All three gates run **in this conversation**. None may be delegated to a subagent — a subagent cannot ask the user a question, so it would guess forward and the answer would not be the user's. Present each gate, wait, then write.
+
+Resuming is normal. When the Decision Log already records gates that were answered, pick up at the next one rather than re-asking what the user has settled.
+
 ## Gate 1 — open questions
 
 Work through the trace file's Open Questions table. These are targets the sources never stated: availability, RTO/RPO, latency percentiles, concurrency and peak load, retention periods, cost caps, dependency SLAs. **These numbers are what the document exists to record; inventing them defeats its purpose.**
@@ -100,4 +104,4 @@ Then report:
 - what was resolved at each gate
 - what remains open in the trace file, and why it is not in the draft
 - the `P0` set and the budget headroom
-- that `/aait:nfr-publish` is the next step, and that it validates before writing anything
+- that publish is the next step, and that it validates before writing anything
