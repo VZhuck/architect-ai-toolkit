@@ -47,12 +47,12 @@ The system SHALL invoke `pandoc` with `-s --toc --toc-depth 3` so the output `.d
 - **THEN** the `.docx`'s `word/document.xml` contains a `TOC` field instruction (`instrText` containing `TOC \o "1-3"`), and no plain-text rendering of the discarded materialized list appears in its place
 
 ### Requirement: CLI-runnable script with importable convert function
-The system SHALL provide a Python script at `skills/md-to-word/scripts/md_to_word.py`, invocable via CLI arguments (`--source`, optional `--template`, optional `--output`), and SHALL expose an importable `convert(source_folder, template=None, output=None)` function usable independent of the CLI, mirroring `docx_to_md.py`'s `convert()` in `word-to-md`.
+The system SHALL provide a Python script at `skills/archy-md-to-word/scripts/md_to_word.py`, invocable via CLI arguments (`--source`, optional `--template`, optional `--output`), and SHALL expose an importable `convert(source_folder, template=None, output=None)` function usable independent of the CLI, mirroring `docx_to_md.py`'s `convert()` in `archy-word-to-md`.
 
 #### Scenario: Manual CLI invocation with defaults
-- **WHEN** a user runs `uv run python skills/md-to-word/scripts/md_to_word.py --source ai-workflow/sad-test`
+- **WHEN** a user runs `uv run python skills/archy-md-to-word/scripts/md_to_word.py --source ai-workflow/sad-test`
 - **THEN** the output `.docx` is written to `ai-workflow/md-to-word/sad-test.docx` (the default output path, derived from the source folder name)
 
 #### Scenario: Manual CLI invocation with explicit output path
-- **WHEN** a user runs `uv run python skills/md-to-word/scripts/md_to_word.py --source ai-workflow/sad-test --output dist/sad.docx`
+- **WHEN** a user runs `uv run python skills/archy-md-to-word/scripts/md_to_word.py --source ai-workflow/sad-test --output dist/sad.docx`
 - **THEN** the output `.docx` is written to `dist/sad.docx`

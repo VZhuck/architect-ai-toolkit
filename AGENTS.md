@@ -15,28 +15,27 @@ Required environment variables include:
 The repository is structured as follows:
 
 architect-ai-toolkit/
-|- .ai-automation/                  # Single source of truth for AI agent customization
-|  |- instructions.md               # Top-level instructions (this file)
-|  |- ai-platform.psm1              # AiPlatform enum ([Flags] Claude, GhCopilot, All)
-|  |- create-links.ps1              # Creates links from .github into .ai-automation
-|  |- agents/                       # Agent definitions
-|  |- skills/                       # Skill definitions
-|  |- instructions/                 # Scoped instruction files
-|  |- scripts/                      # PowerShell helpers used by sync workflows
-|  |  |- AdoWorkItem.psm1           # Defines class AdoWorkItem
-|  |  |- AdoRequirements.psm1       # Defines class AdoRequirements
-|  |  |- fetch-ado-workitem.ps1     # Returns a single ADO work item
-|  |  |- get-ado-work-items.ps1     # Returns capability + feature work items
-|  |  |- read-folder-files.ps1      # Reads folder files into a hashtable
-|  |  |- remove-folder-files.ps1    # Cleans target folder
-|  |  |- load-env-vars.ps1          # Loads .env variables into process scope
-|  |  |- test-ado-prerequisites.ps1 # Validates az/devops/env/login prerequisites
-|  |  |- split-markdown-by-heading.py # Splits markdown by heading structure
-|  |  |- copy-dir.py                # Copies directory content
+|- skills/                          # Canonical skill definitions, one folder per skill
+|  |- archy-<name>/                 # SKILL.md (name: archy-<name>), scripts/, tests/, templates/
+|- commands/
+|  |- archy/                        # Slash commands, invoked as /archy:<name>
+|- rules/                           # Scoped instruction files (e.g. sad-sections.instructions.md)
+|- scripts/                         # install.sh / install.ps1 (ossify-cogents installer)
+|- tests/                           # Repo-level tests (e.g. naming convention checks)
+|- openspec/                        # OpenSpec specs and changes
+|- test-data/                       # Sample docx/markdown inputs for skill tests
+|- ossify-cogents.json              # ossify-cogents source registry for installing this toolkit
+|- pyproject.toml / uv.lock         # Python dependencies, run scripts with `uv run`
 |- .env.example                     # Example environment variables for local setup
 |- README.md                        # Repository overview and usage
 |- LICENSE                          # License file
 
-## Raw Requirements Instructions
+`.claude/skills/` and `.claude/commands/` hold local, gitignored test installs (except the OpenSpec tooling). Always edit the canonical files under `skills/` and `commands/`.
 
-Detailed formatting rules for `functional-requirements-raw/` files are defined in `.ai-automation/instructions/functional-requirements-raw.instructions.md`.
+## Naming Convention
+All skills and commands shipped by this toolkit are namespaced under `archy`:
+- A new skill goes in `skills/archy-<name>/`, and its `SKILL.md` frontmatter `name:` must equal the folder name (`archy-<name>`).
+- A new command goes in `commands/archy/<name>.md` and is invoked as `/archy:<name>`. When it delegates to a skill, it names that skill by its full `archy-<name>` id.
+- Never reference toolkit skills by unprefixed paths (`skills/<name>/`) or commands by un-namespaced invocations (`/<name>`).
+
+`tests/test_naming_conventions.py` enforces this. Run `uv run pytest tests/` after adding or renaming a skill or command.
