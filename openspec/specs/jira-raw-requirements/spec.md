@@ -18,14 +18,14 @@ The skill SHALL verify the `twg` CLI is available before performing any Jira fet
 - **THEN** the skill stops and reports the TWG CLI installation URL (`https://developer.atlassian.com/platform/teamwork-graph/twg-cli/getting-started/installation/`) without attempting any Jira call
 
 ### Requirement: Flat key list, resolved by issue type
-The `/load-raw-req` command SHALL accept one or more Jira work item keys (Capability, Epic, Story, or any other issue type) as a flat, order-independent list — there SHALL be no primary/anchor-vs-extra distinction among passed keys — separated by whitespace, commas, or a mix of both, without requiring the caller to declare any key's issue type. The render template for each key SHALL be selected from the `issuetype` field returned by Jira for that key.
+The `/archy:load-raw-req` command SHALL accept one or more Jira work item keys (Capability, Epic, Story, or any other issue type) as a flat, order-independent list — there SHALL be no primary/anchor-vs-extra distinction among passed keys — separated by whitespace, commas, or a mix of both, without requiring the caller to declare any key's issue type. The render template for each key SHALL be selected from the `issuetype` field returned by Jira for that key.
 
 #### Scenario: Multiple keys, space-separated
-- **WHEN** `/load-raw-req CAP-123 ABC-45 ABC-99` is invoked
+- **WHEN** `/archy:load-raw-req CAP-123 ABC-45 ABC-99` is invoked
 - **THEN** CAP-123, ABC-45, and ABC-99 are all fetched and rendered in the same run, with no key treated differently from another
 
 #### Scenario: Multiple keys, comma-separated
-- **WHEN** `/load-raw-req CAP-123, ABC-45, ABC-99` is invoked
+- **WHEN** `/archy:load-raw-req CAP-123, ABC-45, ABC-99` is invoked
 - **THEN** the same three keys are fetched and rendered in the same run, identically to the space-separated form
 
 #### Scenario: Known issue type
@@ -40,15 +40,15 @@ The `/load-raw-req` command SHALL accept one or more Jira work item keys (Capabi
 When invoked with `--children`, the command SHALL resolve exactly one level of child work items (Capability→Epic or Epic→Story) via `twg context jira workitem`'s typed children relationship for **every** key in the list that supports the relationship, and SHALL include those children in the same fetch batch.
 
 #### Scenario: Children requested on an Epic
-- **WHEN** `/load-raw-req EPIC-45 --children` is invoked
+- **WHEN** `/archy:load-raw-req EPIC-45 --children` is invoked
 - **THEN** the Epic's immediate Story-level children are resolved and included in the fetch set, and each child is freshness-checked and rendered as its own output file
 
 #### Scenario: Children requested on a Capability
-- **WHEN** `/load-raw-req CAP-123 --children` is invoked
+- **WHEN** `/archy:load-raw-req CAP-123 --children` is invoked
 - **THEN** the Capability's immediate Epic-level children are resolved and included in the fetch set; Story-level grandchildren are NOT automatically included
 
 #### Scenario: Children requested on multiple keys at once
-- **WHEN** `/load-raw-req EPIC-45 EPIC-99 --children` is invoked
+- **WHEN** `/archy:load-raw-req EPIC-45 EPIC-99 --children` is invoked
 - **THEN** one level of children is resolved independently for both EPIC-45 and EPIC-99, and all resolved children from both are included in the same fetch batch
 
 #### Scenario: No children flag
@@ -59,15 +59,15 @@ When invoked with `--children`, the command SHALL resolve exactly one level of c
 When the caller passes no keys at all, the skill SHALL read a single `JIRA_KEYS` value from a git-ignored `.env` file at the repo root and split it with the same space/comma-separated parsing rule as command arguments, using the full resulting list as the flat key list. Any explicitly passed keys SHALL take full precedence and skip `.env` entirely — there is no partial merge between passed arguments and `.env`.
 
 #### Scenario: No arguments given, .env provides the full key list
-- **WHEN** `/load-raw-req` is invoked with no arguments and `.env` defines `JIRA_KEYS=CAP-123,ABC-45,ABC-99`
+- **WHEN** `/archy:load-raw-req` is invoked with no arguments and `.env` defines `JIRA_KEYS=CAP-123,ABC-45,ABC-99`
 - **THEN** the skill fetches all three keys as if they had been passed explicitly, with no key treated as special
 
 #### Scenario: Explicit arguments override .env entirely
-- **WHEN** `/load-raw-req CAP-999` is invoked and `.env` defines a different `JIRA_KEYS`
+- **WHEN** `/archy:load-raw-req CAP-999` is invoked and `.env` defines a different `JIRA_KEYS`
 - **THEN** the skill uses only `CAP-999`, ignoring `.env`'s `JIRA_KEYS` completely
 
 #### Scenario: No argument and no .env fallback available
-- **WHEN** `/load-raw-req` is invoked with no arguments and no `.env` file (or no `JIRA_KEYS` in it) exists
+- **WHEN** `/archy:load-raw-req` is invoked with no arguments and no `.env` file (or no `JIRA_KEYS` in it) exists
 - **THEN** the skill stops and asks the caller for at least one key rather than guessing or proceeding
 
 ### Requirement: Context-isolated fetch dispatch
@@ -118,9 +118,13 @@ Each rendered output file SHALL be written to `./ai-workflow/raw-requirements/<i
 - **WHEN** a key that already has a row in the log is synced again in a later run
 - **THEN** its existing row is replaced in place with the new Title/TimeStamp/Status rather than a duplicate row being appended
 
-### Requirement: Canonical top-level layout with symlinks
-The skill, command, and rules files SHALL live under top-level `./skills/load-raw-req/`, `./commands/load-raw-req.md`, and `./rules/`, with `./.claude/skills/load-raw-req`, `./.claude/commands/load-raw-req.md`, and `./.claude/rules` provided as symlinks into those canonical locations for in-place testing.
+### Requirement: Canonical top-level layout
+The skill, command, and rules files SHALL live under the top-level canonical locations `./skills/archy-load-raw-req/`, `./commands/archy/load-raw-req.md`, and `./rules/`. Copies of skills or commands under `./.claude/` (for example, installed there for local testing) SHALL NOT be treated as canonical sources, and SHALL NOT be committed, except for the OpenSpec tooling already tracked there.
 
-#### Scenario: Editing the canonical source is immediately testable
-- **WHEN** a file under `./skills/load-raw-req/` or `./commands/load-raw-req.md` is edited
-- **THEN** the change is immediately visible through the corresponding `.claude/*` symlink without any copy or sync step
+#### Scenario: Canonical source is the single source of truth
+- **WHEN** the `archy-load-raw-req` skill or its command needs to change
+- **THEN** the edit is made under `./skills/archy-load-raw-req/` or `./commands/archy/load-raw-req.md`, and no file under `./.claude/skills/` or `./.claude/commands/` (other than OpenSpec tooling) is committed
+
+#### Scenario: Command invoked under the archy namespace
+- **WHEN** the toolkit is installed and the user types `/archy:load-raw-req CAP-123`
+- **THEN** the command defined in `./commands/archy/load-raw-req.md` runs and invokes the `archy-load-raw-req` skill

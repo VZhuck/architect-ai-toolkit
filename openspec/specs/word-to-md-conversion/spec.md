@@ -46,10 +46,10 @@ The system SHALL generate a `00.Index.md` file containing a nested list of every
 - **THEN** every link target in the index resolves to a heading anchor that exists in its corresponding generated section file
 
 ### Requirement: CLI-runnable script
-The system SHALL provide a Python script under `skills/word-to-md/scripts/` invocable directly via CLI arguments (source docx path, optional target folder), independent of any agent/skill orchestration.
+The system SHALL provide a Python script under `skills/archy-word-to-md/scripts/` invocable directly via CLI arguments (source docx path, optional target folder), independent of any agent/skill orchestration.
 
 #### Scenario: Manual invocation
-- **WHEN** a user runs `uv run python skills/word-to-md/scripts/docx_to_md.py --source <docx> --target-folder <dir>`
+- **WHEN** a user runs `uv run python skills/archy-word-to-md/scripts/docx_to_md.py --source <docx> --target-folder <dir>`
 - **THEN** the same rule-compliant output is produced as when the skill is invoked by an agent
 
 ### Requirement: No stray HTML entities or diagram conversion
