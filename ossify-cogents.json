@@ -28,7 +28,7 @@
       "source-type": "git",
       "source": { "uri": "https://github.com/VZhuck/architect-ai-toolkit.git", "ref": "main" },
       "discovery": [
-        "ossify-open-standard", "ai-architect-toolkit"
+        "ai-architect-toolkit"
       ],
       "install": {
         "target-platforms": [
@@ -57,7 +57,7 @@
           { "type": "folder", "path": "skills" }
         ],
         "commands": [
-          { "type": "folder", "path": "commands" }
+          { "type": "file", "path": "commands/**" }
         ],
         "rules": [
           { "type": "folder", "path": "rules" }
