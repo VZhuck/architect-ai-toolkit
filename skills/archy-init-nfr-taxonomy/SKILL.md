@@ -3,7 +3,7 @@ name: archy-init-nfr-taxonomy
 description: "Initialize or refresh the project's NFR taxonomy: copy every catalog file shipped in this skill's taxonomy/ folder into ai-workflow/nfr-taxonomy/ (version-aware: skips when the installed version matches, overwrites on a version change) and return a JSON result of what was copied, skipped, or overwritten."
 argument-hint: "target (optional destination folder, default 'ai-workflow/nfr-taxonomy'), force (optional, recopy even when versions match)"
 metadata:
-  version: 1.0.0
+  version: 1.1.1
 ---
 
 # Initialize NFR Taxonomy

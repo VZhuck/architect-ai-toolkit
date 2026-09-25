@@ -64,7 +64,7 @@ def test_real_taxonomy_all_files_copied(tmp_path):
     files = _real_taxonomy_files()
     assert files, "skill taxonomy/ must contain at least one file"
 
-    target = tmp_path / "ai-workflow" / "taxonomy"
+    target = tmp_path / "ai-workflow" / "nfr-taxonomy"
     result = init_taxonomy(target)
 
     assert result["status"] == "initialized"
@@ -208,7 +208,7 @@ def test_main_prints_json_result(tmp_path, monkeypatch, capsys):
     result = json.loads(capsys.readouterr().out)
     assert RESULT_FIELDS <= result.keys()
     assert result["status"] == "initialized"
-    assert Path(result["target"]) == tmp_path / "ai-workflow" / "taxonomy"
+    assert Path(result["target"]) == tmp_path / "ai-workflow" / "nfr-taxonomy"
     assert result["copied"] == [f.as_posix() for f in _real_taxonomy_files()]
 
 
@@ -218,3 +218,11 @@ def test_main_error_exits_nonzero(tmp_path, monkeypatch, capsys):
     assert it.main(["--target", str(tmp_path / "taxonomy")]) == 1
     assert "metadata.version" in capsys.readouterr().err
     assert not (tmp_path / "taxonomy").exists()
+
+
+def test_real_taxonomy_ships_workflow_templates(tmp_path):
+    target = tmp_path / "ai-workflow" / "nfr-taxonomy"
+    init_taxonomy(target)
+
+    for template in ("nfr-state.yaml", "nfr-registry-log.md"):
+        assert (target / template).is_file(), f"{template} must ship with the taxonomy"

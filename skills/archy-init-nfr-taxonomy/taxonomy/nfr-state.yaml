@@ -1,0 +1,33 @@
+run_id: "run folder name: explicit run argument or <common-parent-slug>-<yyyymmdd-hhmm>"
+path_args:
+  - "path argument(s) as the user typed them, for the record"
+taxonomy_dir: "path/to/taxonomy/which/was/resolved/when/archy-init-nfr-taxonomy/executed"
+taxonomy_version: "taxonomy version reported by archy-init-nfr-taxonomy"
+session_ids:
+  - "every session id that touched this run"
+active_skill: "SKILL name which pipeline is currently run"
+active_stage: "stage-0|stage-1|stage-2|finished"
+active_step: "step within the active stage, e.g. 1-map, 2-review-parked"
+update_on: "date-time timestamp (with timezone info) when file was updated"
+
+# Run identity: the resolved file set. Stage 0 matches runs on these paths.
+files_4_review:
+  - path: "docs/fileA.md"             # repo-relative
+    sha256: "content hash at last normalize/mine"
+    normalized: ""                    # sources/<rel>.<ext>.md for .docx/.pdf, empty for .md/.mdx
+    status: "pending"                 # pending|mined|failed|skipped|stale
+    reason: ""                        # why failed/skipped
+    images: 0                         # images/diagrams not mined (count from normalize)
+  - path: "docs/fileB.pdf"
+    sha256: ""
+    normalized: "sources/docs/fileB.pdf.md"
+    status: "pending"
+    reason: ""
+    images: 0
+
+state_log:
+  - date: "date-time-timestamp"
+    skill: "skill, which introduces change"
+    gate: "skill stage/check etc"
+    change: "state change description"
+    status: "started|finished|stopped|fail|etc."
