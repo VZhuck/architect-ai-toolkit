@@ -4,7 +4,7 @@
     "./.vscode/markdown-styles.css"
   ],
   "workbench.editorAssociations": {
-    "*.svg": "hediet.vscode-drawio-text"
+    "*.drawio.svg": "hediet.vscode-drawio-text"
   },
   "hediet.vscode-drawio.offline": false
 }
