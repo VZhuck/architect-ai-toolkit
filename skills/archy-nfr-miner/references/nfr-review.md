@@ -8,12 +8,13 @@ A reusable procedure for walking the user through the items of an NFR registry a
 
 | Input | Meaning | archy-nfr-miner passes |
 | --- | --- | --- |
-| `registry_file` | the `nfr-registry-log.md` to edit | `{run_dir}/nfr-registry-log.md` |
+| `registry_file` | the log to edit. Its entry table is `## NFR Registry` (an `nfr-draft-log.md` uses `## Change Set` in the same role; read "registry" below as that table) | `{run_dir}/nfr-registry-log.md` |
 | `state_file` | the `state.yaml` to log to and park in | `{run_dir}/state.yaml` |
 | `taxonomy_dir` | for validating categories and priorities | resolved `taxonomy_dir` |
 | `scope` | which rows are reviewable | whole registry |
 | `allowed_decisions` | the commands that are accepted | all, see [Commands](#commands) |
 | `stage_label` | written to `state_log.gate` | `stage-2-review` |
+| `id_format` | how entry IDs are written: `nfr` (default) or `typed`, see [Commands](#commands) | omitted (`nfr`) |
 
 ## 1. Present
 
@@ -86,7 +87,10 @@ The user replies from the table with any number of [commands](#commands), one pe
 
 ## Commands
 
-IDs are `NFR-###` for entries, `Q#` for open questions, and `C#` for conflicts. Commands are case-insensitive. **Wherever an entry ID is expected, its number alone works** (`4` = `NFR-004`), and a list may be written `1,3,8` or `NFR-1,3,8`. Every command has a short and a long form; the hint line shows the short ones.
+`Q#` is an open question and `C#` a conflict. Commands are case-insensitive. Every command has a short and a long form; the hint line shows the short ones. Entry IDs depend on `id_format`:
+
+- `nfr` (default): entries are `NFR-###`. **Wherever an entry ID is expected, its number alone works** (`4` = `NFR-004`), and a list may be written `1,3,8` or `NFR-1,3,8`.
+- `typed`: entries are `<TYPE>-###` (`BD-002`, `QAR-013`, `ASM-001`, `CSTR-004`), matched case-insensitively and without padding (`qar-13` = `QAR-013`). A number alone is **rejected**, because it is ambiguous across types; say so and show the matching IDs. A list may be written `QAR-1,3,8` (same type) or `QAR-1,CSTR-2`. An entry that has no ID yet is addressed by its origin reference as shown in the table. In the examples below, read `NFR-003` / `3` as `QAR-003`.
 
 | Short | Long | Effect |
 | --- | --- | --- |

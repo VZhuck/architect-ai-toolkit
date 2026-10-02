@@ -224,5 +224,69 @@ def test_real_taxonomy_ships_workflow_templates(tmp_path):
     target = tmp_path / "ai-workflow" / "nfr-taxonomy"
     init_taxonomy(target)
 
-    for template in ("nfr-state.yaml", "nfr-registry-log.md"):
+    for template in ("nfr-state.yaml", "nfr-registry-log.md", "nfr-req-tmpl.md", "nfr-draft-log.md"):
         assert (target / template).is_file(), f"{template} must ship with the taxonomy"
+
+
+# --- NFR document template ---------------------------------------------------
+
+DOC_SECTIONS = {
+    "Business Drivers & Goals": ["ID", "Business Driver", "Business Goal", "Metric / Criteria", "Priority"],
+    "Quality Attributes": ["ID", "Quality Attribute", "Requirement", "Metric / Criteria", "Priority"],
+    "Assumptions": ["ID", "Assumption", "Risk", "Impact"],
+    "Constraints": ["ID", "Constraint", "Impact"],
+}
+
+
+def _cells(line: str) -> list[str]:
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+
+def _doc_tables(text: str) -> dict[str, list[list[str]]]:
+    """H2 heading -> table lines (as cell lists) of the first table in that section."""
+    tables: dict[str, list[list[str]]] = {}
+    section = None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            section = line[3:].strip()
+            tables[section] = []
+        elif section and line.lstrip().startswith("|"):
+            tables[section].append(_cells(line))
+        elif section and tables[section] and not line.strip():
+            section = None  # first table ended
+    return tables
+
+
+def test_doc_template_sections_and_columns():
+    text = (REAL_TAXONOMY / "nfr-req-tmpl.md").read_text(encoding="utf-8")
+    assert [l for l in text.splitlines() if l.startswith("# ")] == ["# Non-Functional Requirements"]
+
+    tables = _doc_tables(text)
+    assert list(tables) == list(DOC_SECTIONS)
+    for section, columns in DOC_SECTIONS.items():
+        rows = tables[section]
+        assert rows[0] == columns, section
+        assert all(set(c) <= set("-: ") and c for c in rows[1]), f"{section}: separator row missing"
+        for row in rows[2:]:
+            assert len(row) == len(columns), f"{section}: {row}"
+            prefix = {"Business Drivers & Goals": "BD", "Quality Attributes": "QAR",
+                      "Assumptions": "ASM", "Constraints": "CSTR"}[section]
+            assert row[0].startswith(prefix + "-"), row
+
+
+def test_doc_template_uses_catalog_names():
+    tables = _doc_tables((REAL_TAXONOMY / "nfr-req-tmpl.md").read_text(encoding="utf-8"))
+    qa_catalog = (REAL_TAXONOMY / "quality-attributes.md").read_text(encoding="utf-8")
+    bd_catalog = (REAL_TAXONOMY / "business-drivers.md").read_text(encoding="utf-8")
+    for row in tables["Quality Attributes"][2:]:
+        assert f"| {row[1]} |" in qa_catalog, row[1]
+    for row in tables["Business Drivers & Goals"][2:]:
+        assert f"**{row[1]}**" in bd_catalog, row[1]
+
+
+def test_draft_log_template_tables_have_separators():
+    text = (REAL_TAXONOMY / "nfr-draft-log.md").read_text(encoding="utf-8")
+    tables = _doc_tables(text)
+    for section in ("Change Set", "Trace", "Retired", "Open Questions", "Conflicts", "Dropped"):
+        rows = tables[section]
+        assert rows and all(set(c) <= set("-: ") and c for c in rows[1]), section
